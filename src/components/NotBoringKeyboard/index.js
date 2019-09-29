@@ -11,6 +11,7 @@ const NotBoringKeyboard = ({ margins }) => {
   let containerRef = useRef(null);
   let barchartRef = useRef(null);
   // let scatterplotRef = useRef(null);
+  const [log, setLog] = useState("Text: ");
   const [data, setData] = useState([
     { value: "a", count: 0, color: "#2176ae" },
     { value: "s", count: 0, color: "#57b8ff" },
@@ -49,6 +50,7 @@ const NotBoringKeyboard = ({ margins }) => {
         ...maintain(data),
         { ...update(data), count: update(data).count + 1 }
       ]);
+      setLog(log => [...log, e.key].join(""));
       updateBarChart(e.key);
     });
 
@@ -112,16 +114,16 @@ const NotBoringKeyboard = ({ margins }) => {
   //   />
   // ));
 
+  const reset = () => {
+    const updatedData = data => data.map(letter => ({ ...letter, count: 0 }));
+    setData(data => updatedData(data));
+    setLog("Text: ");
+  };
+
   return (
     <div ref={containerRef} style={{ width: 800, height: 500 }}>
-      <svg
-        width={width}
-        height={height}
-        ref={barchartRef}
-        transform={`translate(${margins.left}, ${height + margins.top})`}
-      >
-        {bars}
-      </svg>
+      <div>{log}</div>
+      <button onClick={reset}>Reset</button>
       {/* <svg
         width={width}
         height={height}
@@ -130,6 +132,14 @@ const NotBoringKeyboard = ({ margins }) => {
       >
         {points}
       </svg> */}
+      <svg
+        width={width}
+        height={height}
+        ref={barchartRef}
+        transform={`translate(${margins.left}, ${height + margins.top})`}
+      >
+        {bars}
+      </svg>
       {/* <svg width={width} height={height} ref={scatterplotRef}>
         <Axis
           orientation="Bottom"
