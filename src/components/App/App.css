@@ -16,3 +16,15 @@
 .fullHeight {
   min-height: 100vh;
 }
+
+.maxWidth {
+  max-width: 800px;
+}
+
+.container {
+  /* background: black; */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+}

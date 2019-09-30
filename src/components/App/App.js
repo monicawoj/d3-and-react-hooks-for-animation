@@ -46,7 +46,7 @@ const App = () => {
             margins={{ top: 10, bottom: 80, left: 30, right: 10 }}
           />
         </div> */}
-        <div className="fullHeight">
+        <div className="container">
           <NotBoringKeyboard
             margins={{ top: 10, bottom: 80, left: 30, right: 10 }}
           />

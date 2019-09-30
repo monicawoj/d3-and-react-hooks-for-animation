@@ -1,0 +1,22 @@
+.svgContainer {
+  display: inline-block;
+  position: relative;
+  width: 800px;
+  height: 500px;
+  overflow: hidden;
+}
+.svgContent {
+  display: inline-block;
+  position: absolute;
+  top: 0;
+  left: 0;
+  fill: "red";
+}
+
+/* .bottomAxis {
+  stroke: white;
+}
+
+.bottomAxis path {
+  stroke: white;
+} */
