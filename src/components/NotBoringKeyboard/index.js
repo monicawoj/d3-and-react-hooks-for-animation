@@ -19,10 +19,6 @@ import {
 
 import "./style.css";
 
-//generate bar data on mount
-//update data when user input changes
-//update scatterplot when user
-
 const NotBoringKeyboard = () => {
   // create refs for each thing that will need selection/transition
   let chartRef = useRef(null);
@@ -83,13 +79,13 @@ const NotBoringKeyboard = () => {
     qwertyY: getQwertyY(d)
   }));
 
-  // set cleaned data whenever user input changes
+  // hook to clean data whenever user input changes
   useEffect(() => {
     const cleanedData = userInput.replace(/[^a-zA-Z]/g, "").toLowerCase();
     setCleanedData(cleanedData);
   }, [userInput]);
 
-  // hook to set points data when our user input changes
+  // hook to set points data when cleaned data changes
   useEffect(() => {
     setPointsData(
       [...cleanedData].map((d, i) => {
