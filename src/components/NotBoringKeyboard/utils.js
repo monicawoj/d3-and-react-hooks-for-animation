@@ -1,7 +1,7 @@
-export const alphabet = "abcdefghijklmnopqrstuvwxyz;,./";
+export const alphabet = "abcdefghijklmnopqrstuvwxyz";
 const topRow = "qwertyuiop";
-const middleRow = "asdfghjkl;";
-const bottomRow = "zxcvbnm,./";
+const middleRow = "asdfghjkl";
+const bottomRow = "zxcvbnm";
 const alphabetQwertyByRow = [...topRow, ...middleRow, ...bottomRow];
 const getLetterYPosition = i => {
   if (i >= 20) {
@@ -13,7 +13,7 @@ const getLetterYPosition = i => {
   return 0;
 };
 const getLetterXPosition = (letter, i) => {
-  if (i >= 20) {
+  if (i >= 19) {
     return [...bottomRow].findIndex(d => d === letter);
   }
   if (i >= 10) {
@@ -22,10 +22,17 @@ const getLetterXPosition = (letter, i) => {
   return [...topRow].findIndex(d => d === letter);
 };
 
-export let alphabetQwerty = [];
-[0, 1, 2, 3, 4, 5, 6, 7, 8, 9].forEach(i =>
-  alphabetQwerty.push(topRow[i], middleRow[i], bottomRow[i])
+export let qwertyKeyboard = [];
+[0, 1, 2, 3, 4, 5, 6, 7, 8, 9].forEach(
+  i =>
+    console.log(bottomRow[i]) ||
+    qwertyKeyboard.push(
+      topRow[i],
+      middleRow[i] ? middleRow[i] : null,
+      bottomRow[i] ? bottomRow[i] : null
+    )
 );
+export const alphabetQwerty = qwertyKeyboard.filter(d => !!d);
 
 export const getQwertyX = letter =>
   getLetterXPosition(letter, alphabetQwertyByRow.findIndex(d => d === letter));

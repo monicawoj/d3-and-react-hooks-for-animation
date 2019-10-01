@@ -17,14 +17,14 @@
   min-height: 100vh;
 }
 
-.maxWidth {
-  max-width: 800px;
-}
-
-.container {
-  /* background: black; */
+.App-body {
   display: flex;
+  flex-direction: column;
   align-items: center;
   justify-content: center;
-  flex-direction: column;
+}
+
+body {
+  display: flex;
+  justify-content: center;
 }
