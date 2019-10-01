@@ -1,13 +1,6 @@
 import React, { useRef, useEffect, useState } from "react";
 import * as d3 from "d3";
 import "d3-selection-multi";
-import Button from "@material/react-button";
-import TextField, { HelperText, Input } from "@material/react-text-field";
-
-import MaterialIcon from "@material/react-material-icon";
-import "@material/react-text-field/dist/text-field.css";
-import "@material/react-button/dist/button.min.css";
-import "@material/react-material-icon/dist/material-icon.css";
 
 import {
   alphabet,
@@ -19,18 +12,15 @@ import {
 
 import "./style.css";
 
-const NotBoringKeyboard = () => {
+const NotBoringKeyboard = ({ xAxisType, yAxisType, userInput }) => {
   // create refs for each thing that will need selection/transition
   let chartRef = useRef(null);
   let axisLeftRef = useRef(null);
   let axisBottomRef = useRef(null);
 
   // set initial state
-  const [userInput, setUserInput] = useState("");
   const [cleanedData, setCleanedData] = useState([]);
   const [pointsData, setPointsData] = useState([]);
-  const [xAxisType, setXAxisType] = useState("QWERTY");
-  const [yAxisType, setYAxisType] = useState("SCATTERED");
 
   // set visualization margins and dimensions
   const margins = { top: 10, bottom: 80, left: 40, right: 120 };
@@ -71,7 +61,7 @@ const NotBoringKeyboard = () => {
       .interpolate(d3.interpolateRgb)
   };
 
-  // set static bar data
+  // set static constants and functions necessary for our other code
   const barData = [...alphabetQwerty].map((d, i) => ({
     value: d,
     color: d3.color(scales.color(i)),
@@ -79,6 +69,7 @@ const NotBoringKeyboard = () => {
     qwertyY: getQwertyY(d)
   }));
 
+  // DEFINE HOOKS
   // hook to clean data whenever user input changes
   useEffect(() => {
     const cleanedData = userInput.replace(/[^a-zA-Z]/g, "").toLowerCase();
@@ -133,6 +124,7 @@ const NotBoringKeyboard = () => {
     updateScatterplot({ transition: { type: "yaxis" }, scales });
   }, [yAxisType]);
 
+  // define 'draw' functions (we have one for each chart, with a switch statement that listens for transition type, similar to a reducer)
   const updateBarChart = ({
     scales: {
       bar: { x: xScale, y: yScale }
@@ -256,100 +248,54 @@ const NotBoringKeyboard = () => {
     }
   };
 
-  const resetData = () => {
-    setPointsData([]);
-    setUserInput("");
-  };
-
+  // create our visualization HTML/SVG elements (circles and rectangles)
   const bars = barData.map(d => <rect key={d.value} />);
   const points = pointsData.length
     ? pointsData.map(d => <circle key={`${d.value}${d.withinLetterIndex}`} />)
     : null;
 
   return (
-    <div className="container">
-      <TextField
-        textarea
-        fullWidth
-        onTrailingIconSelect={resetData}
-        helperText={
-          <HelperText>Add some letters, see some pretty animation!</HelperText>
-        }
-        trailingIcon={<MaterialIcon role="button" icon="delete" />}
+    <div className="svgContainer">
+      <svg
+        className="svgContent"
+        ref={chartRef}
+        preserveAspectRatio="xMinYMin meet"
+        viewBox={`0 0 ${width} ${height}`}
       >
-        <Input value={userInput} onChange={e => setUserInput(e.target.value)} />
-      </TextField>
-
-      <div className="buttonContainer">
-        <Button onClick={resetData} className="button">
-          Reset
-        </Button>
-        {"|"}
-        <Button
-          className="button"
-          onClick={() =>
-            setXAxisType(xAxisType === "QWERTY" ? "A-Z" : "QWERTY")
-          }
+        <g transform={`translate(${margins.left}, ${margins.top})`}>{bars}</g>
+        <g transform={`translate(${margins.left}, ${margins.top})`}>{points}</g>
+        <g
+          className="axis"
+          transform={`translate(${margins.left}, ${margins.top + height / 2})`}
+          ref={axisBottomRef}
         >
-          Change x-axis to {xAxisType === "QWERTY" ? "A-Z" : "QWERTY"}?
-        </Button>
-        {"|"}
-        <Button
-          className="button"
-          onClick={() =>
-            setYAxisType(yAxisType === "SCATTERED" ? "CONDENSED" : "SCATTERED")
-          }
-        >
-          Change y-axis to{" "}
-          {yAxisType === "SCATTERED" ? "CONDENSED" : "SCATTERED"}?
-        </Button>
-      </div>
-
-      <div className="svgContainer">
-        <svg
-          className="svgContent"
-          ref={chartRef}
-          preserveAspectRatio="xMinYMin meet"
-          viewBox={`0 0 ${width} ${height}`}
-        >
-          <g transform={`translate(${margins.left}, ${margins.top})`}>{bars}</g>
-          <g transform={`translate(${margins.left}, ${margins.top})`}>
-            {points}
-          </g>
-          <g
-            className="axis"
-            transform={`translate(${margins.left}, ${margins.top +
-              height / 2})`}
-            ref={axisBottomRef}
+          <text
+            x={width - margins.right + 20}
+            y={10}
+            fontSize="12px"
+            fontFamily="Roboto, sans-serif"
+            fill="black"
           >
-            <text
-              x={width - margins.right + 20}
-              y={10}
-              fontSize="12px"
-              fontFamily="Roboto, sans-serif"
-              fill="black"
-            >
-              {xAxisType === "QWERTY" ? "LETTER (QWERTY)" : "LETTER (A-Z)"}
-            </text>
-          </g>
-          <g
-            className="axis"
-            transform={`translate(${margins.left}, ${margins.top})`}
-            ref={axisLeftRef}
+            {xAxisType === "QWERTY" ? "LETTER (QWERTY)" : "LETTER (A-Z)"}
+          </text>
+        </g>
+        <g
+          className="axis"
+          transform={`translate(${margins.left}, ${margins.top})`}
+          ref={axisLeftRef}
+        >
+          <text
+            transform={`rotate(270)`}
+            x={-height / 4}
+            y="-30"
+            fontSize="12px"
+            fontFamily="Roboto, sans-serif"
+            fill="black"
           >
-            <text
-              transform={`rotate(270)`}
-              x={-height / 4}
-              y="-30"
-              fontSize="12px"
-              fontFamily="Roboto, sans-serif"
-              fill="black"
-            >
-              {yAxisType === "CONDENSED" ? "COUNT" : "INDEX"}
-            </text>
-          </g>
-        </svg>
-      </div>
+            {yAxisType === "CONDENSED" ? "COUNT" : "INDEX"}
+          </text>
+        </g>
+      </svg>
     </div>
   );
 };
