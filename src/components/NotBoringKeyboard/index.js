@@ -9,45 +9,88 @@ import "@material/react-text-field/dist/text-field.css";
 import "@material/react-button/dist/button.min.css";
 import "@material/react-material-icon/dist/material-icon.css";
 
-import { alphabet, alphabetQwerty, getQwertyX, getQwertyY } from "./utils";
-import QwertyKeyboard from "./QwertyKeyboard";
+import {
+  alphabet,
+  alphabetQwerty,
+  getQwertyX,
+  getQwertyY,
+  updateAxis
+} from "./utils";
 
 import "./style.css";
 
+//generate bar data on mount
+//update data when user input changes
+//update scatterplot when user
+
 const NotBoringKeyboard = () => {
-  let containerRef = useRef(null);
+  // create refs for each thing that will need selection/transition
   let chartRef = useRef(null);
   let axisLeftRef = useRef(null);
   let axisBottomRef = useRef(null);
 
+  // set initial state
   const [userInput, setUserInput] = useState("");
+  const [cleanedData, setCleanedData] = useState([]);
   const [pointsData, setPointsData] = useState([]);
   const [xAxisType, setXAxisType] = useState("QWERTY");
   const [yAxisType, setYAxisType] = useState("SCATTERED");
 
+  // set visualization margins and dimensions
   const margins = { top: 10, bottom: 80, left: 40, right: 120 };
+  const width = 800 - margins.left - margins.right;
+  const height = 500 - margins.top - margins.bottom;
 
-  const colorScale = d3
-    .scaleLinear()
-    .domain([0, 25])
-    .range(["blue", "orange"])
-    .interpolate(d3.interpolateRgb);
+  // define scales
+  const scales = {
+    point: {
+      x: d3
+        .scalePoint()
+        .padding(0.5)
+        .domain(xAxisType === "QWERTY" ? [...alphabetQwerty] : [...alphabet])
+        .range([0, width - margins.right - margins.left]),
+      y: d3
+        .scaleLinear()
+        .domain(
+          yAxisType === "CONDENSED"
+            ? [1, d3.max(pointsData, d => d.withinLetterIndex)]
+            : [0, pointsData.length]
+        )
+        .range([height / 2, 0])
+    },
+    bar: {
+      x: d3
+        .scaleBand()
+        .domain(xAxisType === "QWERTY" ? [...alphabetQwerty] : [...alphabet])
+        .range([0, width - margins.right - margins.left]),
+      y: d3
+        .scaleLinear()
+        .domain([0, 1])
+        .range([0, height / 2])
+    },
+    color: d3
+      .scaleLinear()
+      .domain([0, 25])
+      .range(["blue", "orange"])
+      .interpolate(d3.interpolateRgb)
+  };
 
+  // set static bar data
   const barData = [...alphabetQwerty].map((d, i) => ({
     value: d,
-    color: d3.color(colorScale(i)),
+    color: d3.color(scales.color(i)),
     qwertyX: getQwertyX(d),
     qwertyY: getQwertyY(d)
   }));
 
-  const width = 800 - margins.left - margins.right;
-  const height = 500 - margins.top - margins.bottom;
-  const cleanedData = userInput.replace(/[^a-zA-Z]/g, "").toLowerCase();
-
-  // hook to set data when our user input changes
+  // set cleaned data whenever user input changes
   useEffect(() => {
-    // const cleanedData = userInput.replace(/[^a-zA-Z;,./]/g, "").toLowerCase();
+    const cleanedData = userInput.replace(/[^a-zA-Z]/g, "").toLowerCase();
+    setCleanedData(cleanedData);
+  }, [userInput]);
 
+  // hook to set points data when our user input changes
+  useEffect(() => {
     setPointsData(
       [...cleanedData].map((d, i) => {
         const history = [...cleanedData].slice(0, i);
@@ -63,175 +106,85 @@ const NotBoringKeyboard = () => {
     );
   }, [cleanedData]);
 
-  // hook to update charts when our data changes
+  // hook to update charts when points data changes
   useEffect(() => {
-    console.log(pointsData);
     if (pointsData.length) {
       updateScatterplot({
-        transitionType: "keypress",
-        transitionValue: pointsData[pointsData.length - 1].value
+        transition: {
+          type: "keypress",
+          value: pointsData[pointsData.length - 1].value
+        },
+        scales
       });
       updateBarChart({
-        transitionType: "keypress",
-        transitionValue: pointsData[pointsData.length - 1].value
+        transition: {
+          type: "keypress",
+          value: pointsData[pointsData.length - 1].value
+        },
+        scales
       });
     }
   }, [pointsData]);
 
-  // hook to update x scale to alphabetic/qwerty on button click
+  // hook to toggle x scale (alphabetic/qwerty) on button click
   useEffect(() => {
-    updateScatterplot({ transitionType: "xaxis" });
-    updateBarChart({ transitionType: "xaxis" });
+    updateScatterplot({ transition: { type: "xaxis" }, scales });
+    updateBarChart({ transition: { type: "xaxis" }, scales });
   }, [xAxisType]);
 
-  // hook to update y scale to cumulative/index view on button click
+  // hook to toggle y scale (cumulative/index view) on button click
   useEffect(() => {
-    updateScatterplot({ transitionType: "yaxis" });
-    updateBarChart({ transitionType: "yaxis" });
+    updateScatterplot({ transition: { type: "yaxis" }, scales });
   }, [yAxisType]);
 
-  const updateData = ({ target: { value } }) => {
-    setUserInput(value);
-  };
+  const updateBarChart = ({
+    scales: {
+      bar: { x: xScale, y: yScale }
+    },
+    transition: { type: transitionType, value: transitionValue }
+  }) => {
+    switch (transitionType) {
+      case "xaxis": {
+        return d3
+          .select(chartRef.current)
+          .selectAll("rect")
+          .data(barData)
+          .transition()
+          .duration(1000)
+          .attr("x", d => xScale(d.value));
+      }
 
-  const updateAxis = ({ ref, orientation, scale, ticks }) => {
-    let axisFunction;
-    switch (orientation) {
-      case "Bottom":
-        axisFunction = d3.axisBottom;
-        break;
-      case "Left":
-        axisFunction = d3.axisLeft;
-        break;
-      case "Top":
-        axisFunction = d3.axisTop;
-        break;
-      case "Right":
-        axisFunction = d3.axisRight;
-        break;
+      case "keypress": {
+        return d3
+          .select(chartRef.current)
+          .selectAll("rect")
+          .data(barData)
+          .attr("x", d => xScale(d.value))
+          .attr("width", xScale.bandwidth())
+          .transition()
+          .duration(100)
+          .attr("y", yScale(1))
+          .attr("height", d =>
+            d.value === transitionValue ? height / 2 - yScale(0.5) : yScale(0)
+          )
+          .style("fill", d => (d.value === transitionValue ? d.color : "white"))
+          .transition()
+          .duration(1000)
+          .attr("y", yScale(1))
+          .attr("height", yScale(0))
+          .style("fill", "white");
+      }
       default:
         break;
     }
-
-    d3.select(ref.current).call(axisFunction(scale).ticks(ticks));
   };
 
-  const updateBarChart = ({ transitionType = "", transitionValue = "" }) => {
-    const xBarScale = d3
-      .scaleBand()
-      .domain(xAxisType === "QWERTY" ? [...alphabetQwerty] : [...alphabet])
-      .range([0, width - margins.right - margins.left]);
-    const yBarScale = d3
-      .scaleLinear()
-      .domain([0, 1])
-      .range([0, height / 2]);
-
-    if (transitionType === "xaxis") {
-      d3.select(chartRef.current)
-        .selectAll("rect")
-        .data(barData)
-        .transition()
-        .duration(1000)
-        .attr("x", d => xBarScale(d.value));
-    }
-
-    if (transitionType === "keypress") {
-      d3.select(chartRef.current)
-        .selectAll("rect")
-        .data(barData)
-        .attr("x", d => xBarScale(d.value))
-        .attr("width", xBarScale.bandwidth())
-        .transition()
-        .duration(100)
-        .attr("y", yBarScale(1))
-        .attr("height", d =>
-          d.value === transitionValue
-            ? height / 2 - yBarScale(0.5)
-            : yBarScale(0)
-        )
-        .style("fill", d => (d.value === transitionValue ? d.color : "white"))
-        .transition()
-        .duration(1000)
-        .attr("y", yBarScale(1))
-        .attr("height", yBarScale(0))
-        .style("fill", "white");
-    }
-  };
-
-  const updateScatterplot = ({ transitionType = "", transitionValue = "" }) => {
-    const xScale = d3
-      .scalePoint()
-      .padding(0.5)
-      .domain(xAxisType === "QWERTY" ? [...alphabetQwerty] : [...alphabet])
-      .range([0, width - margins.right - margins.left]);
-    const yScale = d3
-      .scaleLinear()
-      .domain(
-        yAxisType === "CONDENSED"
-          ? [1, d3.max(pointsData, d => d.withinLetterIndex)]
-          : [0, pointsData.length]
-      )
-      .range([height / 2, 0]);
-
-    if (transitionType === "xaxis") {
-      d3.select(chartRef.current)
-        .selectAll("circle")
-        .data(pointsData)
-        .transition()
-        .duration(1000)
-        .attr("cx", d => xScale(d.value));
-
-      return updateAxis({
-        ref: axisBottomRef,
-        orientation: "Bottom",
-        scale: xScale
-      });
-    }
-
-    if (transitionType === "yaxis") {
-      d3.select(chartRef.current)
-        .selectAll("circle")
-        .data(pointsData)
-        .transition()
-        .duration(1000)
-        .attr("cy", (d, i) =>
-          yAxisType === "CONDENSED" ? yScale(d.withinLetterIndex) : yScale(i)
-        );
-
-      return updateAxis({
-        ref: axisLeftRef,
-        orientation: "Left",
-        scale: yScale,
-        ticks: 8
-      });
-    }
-
-    if (transitionType === "keypress") {
-      d3.select(chartRef.current)
-        .selectAll("circle")
-        .data(pointsData)
-        .attr("cx", d => xScale(d.value))
-        .attr("r", 5)
-        .style(
-          "fill",
-          d => barData.find(letter => d.value === letter.value).color
-        )
-        .style("opacity", d => (d.value === transitionValue ? 1 : 0.3))
-        .transition()
-        .duration(500)
-        .attrs({
-          r: (_, i) => (i === pointsData.length ? 10 : 5),
-          fill: "yellow",
-          cy: (d, i) =>
-            yAxisType === "CONDENSED" ? yScale(d.withinLetterIndex) : yScale(i)
-        })
-        // .attr("cy",
-        // )
-        .transition()
-        .duration(1000)
-        .style("opacity", 0.5);
-    }
-
+  const updateScatterplot = ({
+    scales: {
+      point: { x: xScale, y: yScale }
+    },
+    transition: { type: transitionType, value: transitionValue }
+  }) => {
     updateAxis({ ref: axisLeftRef, orientation: "Bottom", scale: xScale });
     updateAxis({
       ref: axisLeftRef,
@@ -239,22 +192,82 @@ const NotBoringKeyboard = () => {
       scale: yScale,
       ticks: 8
     });
+
+    switch (transitionType) {
+      case "xaxis": {
+        d3.select(chartRef.current)
+          .selectAll("circle")
+          .data(pointsData)
+          .transition()
+          .duration(1000)
+          .attr("cx", d => xScale(d.value));
+
+        return updateAxis({
+          ref: axisBottomRef,
+          orientation: "Bottom",
+          scale: xScale
+        });
+      }
+
+      case "yaxis": {
+        d3.select(chartRef.current)
+          .selectAll("circle")
+          .data(pointsData)
+          .transition()
+          .duration(1000)
+          .attr("cy", (d, i) =>
+            yAxisType === "CONDENSED" ? yScale(d.withinLetterIndex) : yScale(i)
+          );
+
+        return updateAxis({
+          ref: axisLeftRef,
+          orientation: "Left",
+          scale: yScale,
+          ticks: 8
+        });
+      }
+
+      case "keypress": {
+        return d3
+          .select(chartRef.current)
+          .selectAll("circle")
+          .data(pointsData)
+          .attrs({
+            cx: d => xScale(d.value),
+            r: 5
+          })
+          .styles({
+            fill: d => barData.find(letter => d.value === letter.value).color,
+            opacity: d => (d.value === transitionValue ? 1 : 0.3)
+          })
+          .transition()
+          .duration(500)
+          .attrs({
+            r: (_, i) => (i === pointsData.length ? 10 : 5),
+            fill: "yellow",
+            cy: (d, i) =>
+              yAxisType === "CONDENSED"
+                ? yScale(d.withinLetterIndex)
+                : yScale(i)
+          })
+          .transition()
+          .duration(1000)
+          .style("opacity", 0.5);
+      }
+
+      default:
+        break;
+    }
   };
 
   const resetData = () => {
-    // const updatedData = data => data.map(letter => ({ ...letter, count: 0 }));
-    // setBarData(data => updatedData(data));
     setPointsData([]);
     setUserInput("");
   };
 
   const bars = barData.map(d => <rect key={d.value} />);
   const points = pointsData.length
-    ? pointsData.map(d => (
-        <circle
-        // key={`${data.find(item => item.value === d).value}}`}
-        />
-      ))
+    ? pointsData.map(d => <circle key={`${d.value}${d.withinLetterIndex}`} />)
     : null;
 
   return (
@@ -268,7 +281,7 @@ const NotBoringKeyboard = () => {
         }
         trailingIcon={<MaterialIcon role="button" icon="delete" />}
       >
-        <Input value={userInput} onChange={updateData} />
+        <Input value={userInput} onChange={e => setUserInput(e.target.value)} />
       </TextField>
 
       <div className="buttonContainer">
@@ -296,7 +309,7 @@ const NotBoringKeyboard = () => {
         </Button>
       </div>
 
-      <div ref={containerRef} className="svgContainer">
+      <div className="svgContainer">
         <svg
           className="svgContent"
           ref={chartRef}
@@ -340,19 +353,9 @@ const NotBoringKeyboard = () => {
             </text>
           </g>
         </svg>
-        {/* <QwertyKeyboard /> */}
       </div>
     </div>
   );
 };
 
 export default NotBoringKeyboard;
-
-// hook to add event listener for window resize so we can watch the dimensions
-// useEffect(() => {
-//   const resizeListener = window.addEventListener("resize", () => {
-//     const dimensions = getDimensionObject(containerRef.current);
-//     setDimensions(dimensions);
-//   });
-//   return () => window.removeEventListener(resizeListener);
-// }, []);

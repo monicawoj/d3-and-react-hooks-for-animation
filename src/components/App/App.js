@@ -16,16 +16,12 @@ import "./App.css";
 //TODO: make presentation! using mdx-deck
 
 const App = () => (
-  <div className="App">
-    <div className="App-body">
-      <Overline>
-        Nordic.JS 2019 - Monica Wojciechowska - "Hooked on D3"
-      </Overline>
-      <Headline2>The Not-Boring KeyBoard</Headline2>
-      <NotBoringKeyboard
-        margins={{ top: 10, bottom: 80, left: 40, right: 120 }}
-      />
-    </div>
+  <div className="App-body">
+    <Overline>Nordic.JS 2019 - Monica Wojciechowska - "Hooked on D3"</Overline>
+    <Headline2>The Not-Boring KeyBoard</Headline2>
+    <NotBoringKeyboard
+      margins={{ top: 10, bottom: 80, left: 40, right: 120 }}
+    />
   </div>
 );
 

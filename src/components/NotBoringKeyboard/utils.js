@@ -1,3 +1,5 @@
+import * as d3 from "d3";
+
 export const alphabet = "abcdefghijklmnopqrstuvwxyz";
 const topRow = "qwertyuiop";
 const middleRow = "asdfghjkl";
@@ -23,14 +25,12 @@ const getLetterXPosition = (letter, i) => {
 };
 
 export let qwertyKeyboard = [];
-[0, 1, 2, 3, 4, 5, 6, 7, 8, 9].forEach(
-  i =>
-    console.log(bottomRow[i]) ||
-    qwertyKeyboard.push(
-      topRow[i],
-      middleRow[i] ? middleRow[i] : null,
-      bottomRow[i] ? bottomRow[i] : null
-    )
+[0, 1, 2, 3, 4, 5, 6, 7, 8, 9].forEach(i =>
+  qwertyKeyboard.push(
+    topRow[i],
+    middleRow[i] ? middleRow[i] : null,
+    bottomRow[i] ? bottomRow[i] : null
+  )
 );
 export const alphabetQwerty = qwertyKeyboard.filter(d => !!d);
 
@@ -38,3 +38,25 @@ export const getQwertyX = letter =>
   getLetterXPosition(letter, alphabetQwertyByRow.findIndex(d => d === letter));
 export const getQwertyY = letter =>
   getLetterYPosition(alphabetQwertyByRow.findIndex(d => d === letter));
+
+export const updateAxis = ({ ref, orientation, scale }) => {
+  let axisFunction;
+  switch (orientation) {
+    case "Bottom":
+      axisFunction = d3.axisBottom;
+      break;
+    case "Left":
+      axisFunction = d3.axisLeft;
+      break;
+    case "Top":
+      axisFunction = d3.axisTop;
+      break;
+    case "Right":
+      axisFunction = d3.axisRight;
+      break;
+    default:
+      break;
+  }
+
+  d3.select(ref.current).call(axisFunction(scale));
+};
