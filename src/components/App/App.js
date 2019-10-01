@@ -9,6 +9,12 @@ import NotBoringKeyboard from "../NotBoringKeyboard";
 
 import "./App.css";
 
+//TODO: reset should animate transition out
+//TODO: yaxis starts with ugly 0
+//TODO: refactor code, can i move any of it to a seperate file?
+//TODO: test responsiveness when i want to add one to the side (to see how languages compare)
+//TODO: make presentation! using mdx-deck
+
 const App = () => (
   <div className="App">
     <div className="App-body">
